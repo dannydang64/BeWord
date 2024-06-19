@@ -9,6 +9,9 @@ export default function App() {
   const word = "hello";
   const letters = word.split(''); // returns an array of letters ['h','e','l','l','o']
 
+  //we need to be able to keep in state all of the tries
+  const rows = new Array(NUMBER_OF_TRIES).fill(
+    new Array(letters.length).fill("a"))
 
   return (
     <SafeAreaView style={styles.container}>
@@ -16,9 +19,18 @@ export default function App() {
       <Text style= {styles.title}>BeWord</Text>
 
       <View style = {styles.map}>
-        <View style = {styles.row}>
-          {letters.map(letter => <View style = {styles.cell}></View> )}
+        {rows.map ((row) => (  // for every row render a row 
+
+          <View style = {styles.row}>
+          {row.map((cell) => (  //mapping each letter to a cell 
+            <View style = {styles.cell}>
+              <Text style = {styles.cellText}>{cell.toUpperCase()}</Text>
+            </View>
+            ))}
         </View>
+
+        ))}
+
         
       </View>
 
@@ -48,7 +60,7 @@ const styles = StyleSheet.create({
 
   row:{
     //backgroundColor: "blue",
-    marginTop: 30, // added this for heading in the future
+    marginTop: 12, // added this for heading in the future
     alignSelf: 'stretch',
     flexDirection: 'row', // go in the same direction as the row
     justifyContent: "center"
@@ -65,7 +77,14 @@ const styles = StyleSheet.create({
     //combination of these styles creates a square 
 
     //create a maxwidth
-    maxWidth:70
+    maxWidth:70,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
+  cellText:{
+    color: colors.lightgrey,
+    fontSize: 32,
+  }
 
 });
