@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "896230279837",
+    "project_id": "beword-3cbce",
+    "storage_bucket": "beword-3cbce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:896230279837:android:d1f2c81770abf0e5652274",
+        "android_client_info": {
+          "package_name": "com.BeWord"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKMI_BiW-QTNuM9IZhF7lk8Rw0MyZhV6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

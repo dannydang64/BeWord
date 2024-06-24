@@ -30,6 +30,19 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
 
-# typescript
+# Android
+android/.gradle/
+android/app/build/
+android/app/src/debug/
+android/app/src/main/res/raw/
+android/app/google-services.json
+android/app/debug.keystore
+
+# Build files
+build/
+output/
+
+# TypeScript
 *.tsbuildinfo

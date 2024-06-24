@@ -3,7 +3,7 @@ import { keys, colors } from "../../constants";
 
 const screenWidth = Dimensions.get("window").width;
 export const keyWidth = (screenWidth - 10) / keys[0].length;
-const keyHeight = keyWidth * 1.7;
+const keyHeight = keyWidth * 1.3;
 
 export default StyleSheet.create({
   keyboard: {
