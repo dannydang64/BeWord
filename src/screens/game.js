@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, Alert } from 'react-native';
 import { colors, CLEAR, ENTER } from '../constants';
 import Keyboard from '..';
+import { useRoute, useNavigation } from '@react-navigation/native'; // Import hooks for route and navigation
 
 const NUMBER_OF_TRIES = 6;
 
@@ -31,6 +32,12 @@ const fetchWordOfTheDay = async () => {
 };
 
 const Game = () => {
+  const route = useRoute(); // Hook to access route parameters
+  const navigation = useNavigation(); // Hook to access navigation object
+  const { user } = route.params;
+
+
+
   const [word, setWord] = useState('');
   const [rows, setRows] = useState([]);
   const [curRow, setCurRow] = useState(0);

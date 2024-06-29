@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { initializeApp } from 'firebase/app';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, isSupported} from 'firebase/analytics';
 
 // Ensure that Constants.expoConfig.extra is properly accessed
 const firebaseConfig = {
@@ -18,6 +18,14 @@ console.log(Constants.expoConfig.extra);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
-export default app;
+const initFirebaseAnalytics = async () => {
+  const supported = await isSupported();
+  if (supported) {
+    const analytics = getAnalytics(app);
+  }
+};
+
+initFirebaseAnalytics();
+
+export {app, firebaseConfig};

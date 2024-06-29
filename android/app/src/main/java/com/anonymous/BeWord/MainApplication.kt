@@ -1,5 +1,6 @@
 package com.anonymous.BeWord
 
+import com.reactnativegooglesignin.RNGoogleSigninPackage;
 import android.app.Application
 import android.content.res.Configuration
 

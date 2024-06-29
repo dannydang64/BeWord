@@ -2,7 +2,6 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    plugins: ["@react-native-google-signin/google-signin"],
     name: "BeWord",
     slug: "BeWord",
     version: "1.0.0",
