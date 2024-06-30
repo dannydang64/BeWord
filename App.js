@@ -3,9 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Game from './src/screens/game';
 import Welcome from './src/screens/Welcome';
-import { initializeApp } from 'firebase/app';
-import { firebaseConfig } from './firebaseConfig';
-import { enableScreens } from 'react-native-screens';
+
 
 
 //enableScreens();

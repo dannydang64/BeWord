@@ -17,6 +17,7 @@ const Welcome = ({navigation }) => {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log('User signed up:', userCredential.user);
       } else {
+        
         userCredential = await signInWithEmailAndPassword(auth, email, password);
         console.log('HELLLLLLLLLLLLLLLLLLOOOOOOOOOOOOOO', userCredential.user);
         navigation.navigate('Game', { user: userCredential.user });

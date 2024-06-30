@@ -31,6 +31,25 @@ const fetchWordOfTheDay = async () => {
   }
 };
 
+
+const checkValidWord = async (guess) => {
+  // set guess equal to the word formed by the letters on the current row 
+  const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${guess}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.title === "No Definitions Found") {
+      return false;
+    }
+    else if (data.length > 0) {
+      return true;
+    }
+  } catch (error) {
+    console.error('Error checking if word is valid:', error);
+    return false;
+  }
+}
+
 const Game = () => {
   const route = useRoute(); // Hook to access route parameters
   const navigation = useNavigation(); // Hook to access navigation object
@@ -82,7 +101,7 @@ const Game = () => {
     return curRow === rows.length;
   }
 
-  const onKeyPressed = (key) => {
+  const onKeyPressed = async (key) => { //added async here due to checkWord 
     if (gameState !== 'playing') {
       return;
     }
@@ -100,11 +119,18 @@ const Game = () => {
     }
 
     if (key === ENTER) {
-      if (curCol === rows[0].length) {
+      // checkValidWord (curRow)
+      const curWord = updatedRows[curRow].join('');
+      const isValidWord = await checkValidWord(curWord);
+      if (!isValidWord) {
+        console.log("curr Word: ", curWord,);
+        console.log("is valid word: ", isValidWord);
+        Alert.alert('Invalid word, please try again.');
+      }
+      if (curCol === rows[0].length && isValidWord) {
         setCurRow(curRow + 1);
         setCurCol(0);
       }
-
       return;
     }
 
