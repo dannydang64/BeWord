@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
-import { initializeApp } from 'firebase/app';
+import { initializeApp,firebase} from 'firebase/app';
 import { getAnalytics, isSupported} from 'firebase/analytics';
+//import '@react-native-firebase/firestore';
+
 
 // Ensure that Constants.expoConfig.extra is properly accessed
 const firebaseConfig = {
@@ -19,6 +21,7 @@ console.log(Constants.expoConfig.extra);
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+
 const initFirebaseAnalytics = async () => {
   const supported = await isSupported();
   if (supported) {
@@ -28,4 +31,8 @@ const initFirebaseAnalytics = async () => {
 
 initFirebaseAnalytics();
 
+// Initialize Firestore
+
+
 export {app, firebaseConfig};
+

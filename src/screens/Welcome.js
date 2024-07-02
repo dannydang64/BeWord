@@ -1,28 +1,40 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Pressable, Alert } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import {app} from '../../firebaseConfig.js'
+import { app, db} from '../../firebaseConfig.js'
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore } from "firebase/firestore";
 
-const Welcome = ({navigation }) => {
+const Welcome = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  
+
   const auth = getAuth(app);
+  const db = getFirestore(app);
+  
 
   const handleAuth = async () => {
     try {
       let userCredential;
+
       if (isSignUp) {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password); // holds info on users
+        // doc creates a referebce to a doc in the db 
+        //serDoc wruites data to the doc 
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          email: userCredential.user.email,
+        });
         console.log('User signed up:', userCredential.user);
+        setIsSignUp(!setIsSignUp);
+        Alert.alert("You sucessfully signed up!"); 
       } else {
-        
+
         userCredential = await signInWithEmailAndPassword(auth, email, password);
         console.log('HELLLLLLLLLLLLLLLLLLOOOOOOOOOOOOOO', userCredential.user);
         navigation.navigate('Game', { user: userCredential.user });
       }
-      
+
     } catch (error) {
       console.error('Error during authentication:', error.code, error.message);
     }

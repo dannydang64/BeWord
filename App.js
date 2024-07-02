@@ -4,8 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Game from './src/screens/game';
 import Welcome from './src/screens/Welcome';
 
-
-
 //enableScreens();
 
 
