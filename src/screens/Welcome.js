@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, Button, Pressable, Alert } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { app, db} from '../../firebaseConfig.js'
+import { app} from '../../firebaseConfig.js'
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { getFirestore } from "firebase/firestore";
 
@@ -24,9 +24,22 @@ const Welcome = ({ navigation }) => {
         //serDoc wruites data to the doc 
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           email: userCredential.user.email,
+          playedGames: 0, // note that when addding a field we use : not = 
+          wins: 0,
+          winPercentage: 0, 
+          currentStreak: 0,
+          maxStreak: 0, 
+          guessDistribution: {
+            1: 0, 
+            2: 0, 
+            3: 0, 
+            4: 0, 
+            5: 0, 
+            6: 0, 
+          }
+
         });
         console.log('User signed up:', userCredential.user);
-        setIsSignUp(!setIsSignUp);
         Alert.alert("You sucessfully signed up!"); 
       } else {
 

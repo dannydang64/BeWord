@@ -1,8 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, Alert } from 'react-native';
 import { colors, CLEAR, ENTER } from '../constants';
 import Keyboard from '..';
 import { useRoute, useNavigation } from '@react-navigation/native'; // Import hooks for route and navigation
+import { getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { app } from '../../firebaseConfig.js';
+import Modal from '../components/modal.js';
 
 const NUMBER_OF_TRIES = 6;
 
@@ -31,7 +36,6 @@ const fetchWordOfTheDay = async () => {
   }
 };
 
-
 const checkValidWord = async (guess) => {
   // set guess equal to the word formed by the letters on the current row 
   const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${guess}`;
@@ -55,82 +59,138 @@ const Game = () => {
   const navigation = useNavigation(); // Hook to access navigation object
   const { user } = route.params;
 
-
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
   const [word, setWord] = useState('');
   const [rows, setRows] = useState([]);
   const [curRow, setCurRow] = useState(0);
   const [curCol, setCurCol] = useState(0);
   const [gameState, setGameState] = useState('playing'); //won , lost, or playing
+  const [modalVisible, setModalVisible] = useState(false);
+  const [userStats, setUserStats] = useState({
+    playedGames: 0,
+    wins: 0,
+    winPercentage: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    guessDistribution: new Array(NUMBER_OF_TRIES).fill(0),
+  });
 
   useEffect(() => {
     const initializeGame = async () => {
       const wordOfTheDay = await fetchWordOfTheDay(); // initialize games pauses until fetchword is done 
       if (wordOfTheDay) {
         setWord(wordOfTheDay); // only once we fetcht the word and its valid we set the word
-        setRows(new Array(NUMBER_OF_TRIES).fill(new Array(wordOfTheDay.length).fill(""))); // initial state
+      } else {
+        Alert.alert('Error', 'Unable to fetch the word of the day. Please try again later.');
       }
+      setRows(new Array(NUMBER_OF_TRIES).fill(new Array(wordOfTheDay.length).fill('')));
     };
     initializeGame();
-  }, []); // empty array represents the dependencies that determine when useEffect should run
-  // if anything in the array would change then useEffect would rerun 
+  }, []);
 
   useEffect(() => {
-    if (curRow > 0) {
-      checkGameState();
-    }
-  }, [curRow])
+    const fetchUserStats = async () => {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserStats({
+            playedGames: data.playedGames || 0,
+            wins: data.wins || 0,
+            winPercentage: data.winPercentage || 0,
+            currentStreak: data.currentStreak || 0,
+            maxStreak: data.maxStreak || 0,
+            guessDistribution: data.guessDistribution || new Array(NUMBER_OF_TRIES).fill(0),
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+      }
+    };
 
-  const checkGameState = () => {
-    if (checkIfWon()) {
-      setGameState('won');
-      Alert.alert('hip hip hurray, ur so smart')
-    }
-    else if (checkIfLost()) {
-      setGameState('lost');
-      Alert.alert('LMAOOOOOOOO. maybe tmmrw lil bro. the ansswer is: ', word.toUpperCase())
-    }
-  }
 
-  const checkIfWon = () => {
-    const row = rows[curRow - 1];
-    return row.every((letter, i) => letter === word[i]);
-  }
+    fetchUserStats(); // why are we calling the function when we just defined it 
+  }, [user.uid]);
 
-  const checkIfLost = () => {
-    return curRow === rows.length;
-  }
-
-  const onKeyPressed = async (key) => { //added async here due to checkWord 
+  useEffect(() => {
     if (gameState !== 'playing') {
-      return;
+      const saveStats = async () => {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          const userData = userDoc.data();
+
+          const playedGames = userData.playedGames + 1;
+          const wins = gameState === 'won' ? userData.wins + 1 : userData.wins;
+          const winPercentage = (wins / playedGames) * 100;
+          const currentStreak = gameState === 'won' ? userData.currentStreak + 1 : 0;
+          const maxStreak = gameState === 'won' && currentStreak > userData.maxStreak ? currentStreak : userData.maxStreak;
+
+          let guessDistribution = userData.guessDistribution || new Array(NUMBER_OF_TRIES).fill(0);
+          if (gameState === 'won') {
+            guessDistribution[curRow] = guessDistribution[curRow] + 1;
+          }
+
+          const updatedStats = {
+            playedGames,
+            wins,
+            winPercentage,
+            currentStreak,
+            maxStreak,
+            guessDistribution,
+          };
+
+          await updateDoc(userDocRef, updatedStats);
+          setUserStats(updatedStats);
+        } catch (error) {
+          console.error('Error saving user stats:', error);
+        }
+      };
+
+      saveStats(); //what does saveStats do 
+      setModalVisible(true);
     }
+  }, [gameState, curRow, db, user.uid]);
+
+  const handleKeyPressed = async (key) => {
+    if (gameState !== 'playing') return;
 
     const updatedRows = copyArray(rows);
 
-    if (key === CLEAR && curCol <= rows[0].length) {
+    if (key === CLEAR) {
       const prevCol = curCol - 1;
-      if (prevCol >= 0) { // if ur on first cell just return since your cell must be empty 
-        updatedRows[curRow][prevCol] = "";
+      if (prevCol >= 0) {
+        updatedRows[curRow][prevCol] = '';
         setRows(updatedRows);
-        setCurCol(prevCol);  // we do this so that we delete the cell before not the empty one were on
+        setCurCol(prevCol);
       }
       return;
     }
 
     if (key === ENTER) {
-      // checkValidWord (curRow)
-      const curWord = updatedRows[curRow].join('');
-      const isValidWord = await checkValidWord(curWord);
-      if (!isValidWord) {
-        console.log("curr Word: ", curWord,);
-        console.log("is valid word: ", isValidWord);
-        Alert.alert('Invalid word, please try again.');
+      if (curCol === rows[0].length) {
+        const guess = updatedRows[curRow].join('');
+        const isValidWord = await checkValidWord(guess);
+        if (isValidWord) {
+          setCurRow(curRow + 1);
+          setCurCol(0);
+        } else {
+          Alert.alert('Invalid Word', 'The guessed word is not valid. Please try again.');
+        }
+
+        if (guess === word) {
+          setGameState('won');
+        } else if (curRow === rows.length - 1) {
+          setGameState('lost');
+        }
+
+        return;
       }
-      if (curCol === rows[0].length && isValidWord) {
-        setCurRow(curRow + 1);
-        setCurCol(0);
-      }
+
+      Alert.alert('Incomplete Word', 'Please complete the word before submitting.');
       return;
     }
 
@@ -138,8 +198,6 @@ const Game = () => {
       updatedRows[curRow][curCol] = key;
       setRows(updatedRows);
       setCurCol(curCol + 1);
-    } else {
-      return;
     }
   };
 
@@ -149,41 +207,20 @@ const Game = () => {
 
   const getCellBGColor = (row, col) => {
     const letter = rows[row][col];
-    const tempLetters = [...word]; // Copy of the word
-    const letterCount = {}; // Track the count of each letter in the word
 
     if (row >= curRow) {
       return colors.black;
     }
 
-    // Count each letter in the word
-    for (const char of tempLetters) {
-      letterCount[char] = (letterCount[char] || 0) + 1;
-    }
-
-    // First pass: Mark correctly placed letters (Green)
-    for (let i = 0; i < word.length; i++) {
-      if (rows[row][i] === word[i]) {
-        letterCount[word[i]]--; // Decrease the count for this letter
-      }
-    }
-
-    // If the current letter is in the correct position, mark it green
     if (letter === word[col]) {
-      return colors.primary; // Green
+      return colors.primary;
     }
 
-    // Second pass: Mark letters that exist but are in the wrong position (Yellow)
-    for (let i = 0; i < word.length; i++) {
-      if (rows[row][i] !== word[i] && letterCount[rows[row][i]] > 0) {
-        letterCount[rows[row][i]]--; // Decrease the count for this letter
-        if (i === col) {
-          return colors.secondary; // Yellow
-        }
-      }
+    if (word.includes(letter)) {
+      return colors.secondary;
     }
 
-    return colors.darkgrey; // Dark grey
+    return colors.darkgrey;
   };
 
   const getAllLettersWithColor = (color) => {
@@ -198,10 +235,9 @@ const Game = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>BeWord</Text>
-
+      <Text style={styles.title}>WORDLE</Text>
       <View style={styles.map}>
-        {rows.map((row, i) => ( // for every row render a row 
+        {rows.map((row, i) => (
           <View key={`row-${i}`} style={styles.row}>
             {row.map((letter, j) => (
               <View
@@ -209,9 +245,9 @@ const Game = () => {
                 style={[
                   styles.cell,
                   {
-                    borderColor: isCellActive(i, j) ? colors.lightgrey : colors.darkgrey,
+                    borderColor: isCellActive(i, j) ? colors.grey : colors.darkgrey,
                     backgroundColor: getCellBGColor(i, j),
-                  }
+                  },
                 ]}
               >
                 <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
@@ -220,54 +256,61 @@ const Game = () => {
           </View>
         ))}
       </View>
-
       <Keyboard
-        onKeyPressed={onKeyPressed}
+        onKeyPressed={handleKeyPressed}
         greenCaps={greenCaps}
         yellowCaps={yellowCaps}
         greyCaps={greyCaps}
       />
+      <Modal
+        isCorrect={gameState === 'won'}
+        turn={curRow}
+        solution={word}
+        modalVisible={modalVisible}
+        setModalVisible={setModalVisible}
+        playedGames = {userStats.playedGames}
+        winPercentage = {userStats.winPercentage}
+        currentStreak = {userStats.currentStreak}
+        maxStreak = {userStats.maxStreak}
+        guessDistribution={userStats.guessDistribution}
+      />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.black,
-    alignItems: 'center',
   },
   title: {
+    textAlign: 'center',
+    fontSize: 32,
     color: colors.lightgrey,
-    fontSize: 35,
-    fontWeight: "bold",
-    letterSpacing: 7,
+    fontWeight: 'bold',
   },
   map: {
     alignSelf: 'stretch',
-    height: 100,
+    marginVertical: 20,
   },
   row: {
-    marginTop: 12,
-    alignSelf: 'stretch',
     flexDirection: 'row',
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   cell: {
-    borderWidth: 2,
+    borderWidth: 3,
+    borderColor: colors.darkgrey,
     flex: 1,
-    height: 30,
     aspectRatio: 1,
     margin: 3,
-    maxWidth: 70,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cellText: {
     color: colors.lightgrey,
-    fontSize: 32,
-    fontWeight: "bold",
-  }
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
 });
 
 export default Game;
