@@ -36,15 +36,17 @@ const Welcome = ({ navigation }) => {
             4: 0, 
             5: 0, 
             6: 0, 
-          }
+          },
 
+
+          // added this to create friend system
+          friends: [],
         });
         console.log('User signed up:', userCredential.user);
         Alert.alert("You sucessfully signed up!"); 
       } else {
 
         userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log('HELLLLLLLLLLLLLLLLLLOOOOOOOOOOOOOO', userCredential.user);
         navigation.navigate('Game', { user: userCredential.user });
       }
 

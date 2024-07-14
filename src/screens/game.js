@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, Alert, ScrollView, Button } from 'react-native';
 import { colors, CLEAR, ENTER } from '../constants';
 import Keyboard from '..';
 import { useRoute, useNavigation } from '@react-navigation/native'; // Import hooks for route and navigation
@@ -8,6 +8,7 @@ import { getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig.js';
 import Modal from '../components/modal.js';
+import UserSearchScreen from './userSearchScreen.js';
 
 const NUMBER_OF_TRIES = 6;
 
@@ -207,20 +208,41 @@ const Game = () => {
 
   const getCellBGColor = (row, col) => {
     const letter = rows[row][col];
+    const tempLetters = [...word]; // Copy of the word
+    const letterCount = {}; // Track the count of each letter in the word
 
     if (row >= curRow) {
       return colors.black;
     }
 
+    // Count each letter in the word
+    for (const char of tempLetters) {
+      letterCount[char] = (letterCount[char] || 0) + 1;
+    }
+
+    // First pass: Mark correctly placed letters (Green)
+    for (let i = 0; i < word.length; i++) {
+      if (rows[row][i] === word[i]) {
+        letterCount[word[i]]--; // Decrease the count for this letter
+      }
+    }
+
+    // If the current letter is in the correct position, mark it green
     if (letter === word[col]) {
-      return colors.primary;
+      return colors.primary; // Green
     }
 
-    if (word.includes(letter)) {
-      return colors.secondary;
+    // Second pass: Mark letters that exist but are in the wrong position (Yellow)
+    for (let i = 0; i < word.length; i++) {
+      if (rows[row][i] !== word[i] && letterCount[rows[row][i]] > 0) {
+        letterCount[rows[row][i]]--; // Decrease the count for this letter
+        if (i === col) {
+          return colors.secondary; // Yellow
+        }
+      }
     }
 
-    return colors.darkgrey;
+    return colors.darkgrey; // Dark grey
   };
 
   const getAllLettersWithColor = (color) => {
@@ -234,47 +256,56 @@ const Game = () => {
   const greyCaps = getAllLettersWithColor(colors.darkgrey);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>WORDLE</Text>
-      <View style={styles.map}>
-        {rows.map((row, i) => (
-          <View key={`row-${i}`} style={styles.row}>
-            {row.map((letter, j) => (
-              <View
-                key={`cell-${i}-${j}`}
-                style={[
-                  styles.cell,
-                  {
-                    borderColor: isCellActive(i, j) ? colors.grey : colors.darkgrey,
-                    backgroundColor: getCellBGColor(i, j),
-                  },
-                ]}
-              >
-                <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
-              </View>
-            ))}
-          </View>
-        ))}
-      </View>
-      <Keyboard
-        onKeyPressed={handleKeyPressed}
-        greenCaps={greenCaps}
-        yellowCaps={yellowCaps}
-        greyCaps={greyCaps}
-      />
-      <Modal
-        isCorrect={gameState === 'won'}
-        turn={curRow}
-        solution={word}
-        modalVisible={modalVisible}
-        setModalVisible={setModalVisible}
-        playedGames = {userStats.playedGames}
-        winPercentage = {userStats.winPercentage}
-        currentStreak = {userStats.currentStreak}
-        maxStreak = {userStats.maxStreak}
-        guessDistribution={userStats.guessDistribution}
-      />
-    </SafeAreaView>
+    <ScrollView>
+      {/* <UserSearch currentUserUid={user.uid} /> */}
+
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>WORDLE</Text>
+        <Button
+          title="Add Friend"
+          onPress={() => navigation.navigate('UserSearchScreen', { currentUserUid: user.uid })}
+        />
+        <View style={styles.map}>
+          {rows.map((row, i) => (
+            <View key={`row-${i}`} style={styles.row}>
+              {row.map((letter, j) => (
+                <View
+                  key={`cell-${i}-${j}`}
+                  style={[
+                    styles.cell,
+                    {
+                      borderColor: isCellActive(i, j) ? colors.grey : colors.darkgrey,
+                      backgroundColor: getCellBGColor(i, j),
+                    },
+                  ]}
+                >
+                  <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+        <Keyboard
+          onKeyPressed={handleKeyPressed}
+          greenCaps={greenCaps}
+          yellowCaps={yellowCaps}
+          greyCaps={greyCaps}
+        />
+        <Modal
+          isCorrect={gameState === 'won'}
+          turn={curRow}
+          solution={word}
+          modalVisible={modalVisible}
+          setModalVisible={setModalVisible}
+          playedGames={userStats.playedGames}
+          winPercentage={userStats.winPercentage}
+          currentStreak={userStats.currentStreak}
+          maxStreak={userStats.maxStreak}
+          guessDistribution={userStats.guessDistribution}
+        />
+
+      </SafeAreaView>
+    </ScrollView>
   );
 };
 
