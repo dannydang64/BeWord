@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, SafeAreaView, Alert, ScrollView, Button } from 
 import { colors, CLEAR, ENTER } from '../constants';
 import Keyboard from '..';
 import { useRoute, useNavigation } from '@react-navigation/native'; // Import hooks for route and navigation
-import { getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, getDoc, addDoc} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig.js';
 import Modal from '../components/modal.js';
@@ -255,15 +255,19 @@ const Game = () => {
   const yellowCaps = getAllLettersWithColor(colors.secondary);
   const greyCaps = getAllLettersWithColor(colors.darkgrey);
 
+  const handleAddFriend = () => {
+    console.log('Current User UID:', user.uid);
+    navigation.navigate('UserSearchScreen', { currentUserUid: user.uid });
+  };
+
+
   return (
     <ScrollView>
-      {/* <UserSearch currentUserUid={user.uid} /> */}
-
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>WORDLE</Text>
         <Button
-          title="Add Friend"
-          onPress={() => navigation.navigate('UserSearchScreen', { currentUserUid: user.uid })}
+          title="Send Friend Request"
+          onPress={handleAddFriend}
         />
         <View style={styles.map}>
           {rows.map((row, i) => (

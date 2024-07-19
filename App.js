@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Game from './src/screens/game';
 import Welcome from './src/screens/Welcome';
 import UserSearchScreen from './src/screens/userSearchScreen';
+import FriendRequestsScreen from './src/screens/FriendRequestScreen';
+
 
 //enableScreens();
 
@@ -21,6 +23,7 @@ export default function App() {
         <Stack.Screen name="Welcome" component={Welcome} />
         <Stack.Screen name="Game" component={Game} />
         <Stack.Screen name="UserSearchScreen" component={UserSearchScreen} />
+        <Stack.Screen name = "FriendRequestScreen" component={FriendRequestsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
