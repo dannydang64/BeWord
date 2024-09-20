@@ -12,6 +12,7 @@ export const colorsToEmoji = {
   [colors.darkgrey]: "⬛",
   [colors.primary]: "🟩",
   [colors.secondary]: "🟧",
+  [colors.black]:  "⬛",
 };
 
 export const ENTER = "ENTER";

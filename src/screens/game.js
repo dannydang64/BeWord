@@ -1,14 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Alert, ScrollView, Button } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { colors, CLEAR, ENTER } from '../constants';
 import Keyboard from '..';
 import { useRoute, useNavigation } from '@react-navigation/native'; // Import hooks for route and navigation
-import { getFirestore, doc, updateDoc, getDoc, addDoc} from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig.js';
 import Modal from '../components/modal.js';
 import UserSearchScreen from './userSearchScreen.js';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import the icon library
 
 const NUMBER_OF_TRIES = 6;
 
@@ -38,22 +38,20 @@ const fetchWordOfTheDay = async () => {
 };
 
 const checkValidWord = async (guess) => {
-  // set guess equal to the word formed by the letters on the current row 
   const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${guess}`;
   try {
     const response = await fetch(url);
     const data = await response.json();
     if (data.title === "No Definitions Found") {
       return false;
-    }
-    else if (data.length > 0) {
+    } else if (data.length > 0) {
       return true;
     }
   } catch (error) {
     console.error('Error checking if word is valid:', error);
     return false;
   }
-}
+};
 
 const Game = () => {
   const route = useRoute(); // Hook to access route parameters
@@ -67,7 +65,7 @@ const Game = () => {
   const [rows, setRows] = useState([]);
   const [curRow, setCurRow] = useState(0);
   const [curCol, setCurCol] = useState(0);
-  const [gameState, setGameState] = useState('playing'); //won , lost, or playing
+  const [gameState, setGameState] = useState('playing'); // won, lost, or playing
   const [modalVisible, setModalVisible] = useState(false);
   const [userStats, setUserStats] = useState({
     playedGames: 0,
@@ -75,18 +73,33 @@ const Game = () => {
     winPercentage: 0,
     currentStreak: 0,
     maxStreak: 0,
-    guessDistribution: new Array(NUMBER_OF_TRIES).fill(0),
   });
+
+  const fetchGameResults = async () => {
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.data();
+      //console.log('Game results:', userData?.gameResults || []);
+    } catch (error) {
+      console.error('Error fetching game results:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGameResults(); // Fetch game results for the current user
+  }, [user.uid]);
 
   useEffect(() => {
     const initializeGame = async () => {
-      const wordOfTheDay = await fetchWordOfTheDay(); // initialize games pauses until fetchword is done 
+      const wordOfTheDay = await fetchWordOfTheDay();
+      console.log(wordOfTheDay);
       if (wordOfTheDay) {
-        setWord(wordOfTheDay); // only once we fetcht the word and its valid we set the word
+        setWord(wordOfTheDay);
+        setRows(new Array(NUMBER_OF_TRIES).fill(new Array(wordOfTheDay.length).fill('')));
       } else {
         Alert.alert('Error', 'Unable to fetch the word of the day. Please try again later.');
       }
-      setRows(new Array(NUMBER_OF_TRIES).fill(new Array(wordOfTheDay.length).fill('')));
     };
     initializeGame();
   }, []);
@@ -104,7 +117,16 @@ const Game = () => {
             winPercentage: data.winPercentage || 0,
             currentStreak: data.currentStreak || 0,
             maxStreak: data.maxStreak || 0,
-            guessDistribution: data.guessDistribution || new Array(NUMBER_OF_TRIES).fill(0),
+            // gameResults: data.gameResults || [],
+          });
+        } else {
+          setUserStats({
+            playedGames: 0,
+            wins: 0,
+            winPercentage: 0,
+            currentStreak: 0,
+            maxStreak: 0,
+            // gameResults: [],
           });
         }
       } catch (error) {
@@ -112,46 +134,46 @@ const Game = () => {
       }
     };
 
-
-    fetchUserStats(); // why are we calling the function when we just defined it 
+    fetchUserStats();
   }, [user.uid]);
 
   useEffect(() => {
     if (gameState !== 'playing') {
+
+      const gameData = {
+        guesses: rows.map(row => row.join('')),
+        colors: rows.map((row, rowIndex) => row.map((_, colIndex) => getCellBGColor(rowIndex, colIndex))),
+      };
+
+      console.log('Game Data to be sent:', gameData); // Log gameData to ensure it's correct
+      if (gameData.guesses.length > 0) {
+        navigation.navigate('GameResultsScreen', { currentUserUid: user.uid, gameData });
+      } else {
+        console.error('Error: gameData is empty or invalid');
+      }
+
       const saveStats = async () => {
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
-          const userData = userDoc.data();
+          const userData = userDoc.data() || {};
 
-          const playedGames = userData.playedGames + 1;
-          const wins = gameState === 'won' ? userData.wins + 1 : userData.wins;
-          const winPercentage = (wins / playedGames) * 100;
-          const currentStreak = gameState === 'won' ? userData.currentStreak + 1 : 0;
-          const maxStreak = gameState === 'won' && currentStreak > userData.maxStreak ? currentStreak : userData.maxStreak;
 
-          let guessDistribution = userData.guessDistribution || new Array(NUMBER_OF_TRIES).fill(0);
-          if (gameState === 'won') {
-            guessDistribution[curRow] = guessDistribution[curRow] + 1;
-          }
 
-          const updatedStats = {
-            playedGames,
-            wins,
-            winPercentage,
-            currentStreak,
-            maxStreak,
-            guessDistribution,
-          };
+          await updateDoc(userDocRef, {
+            //gameResults: updatedGameResults, // Add the updated gameResults array
+            playedGames: userData.playedGames + 1,
+            wins: gameState === 'won' ? userData.wins + 1 : userData.wins,
+            winPercentage: ((gameState === 'won' ? userData.wins + 1 : userData.wins) / (userData.playedGames + 1)) * 100,
+            currentStreak: gameState === 'won' ? userData.currentStreak + 1 : 0,
+            maxStreak: gameState === 'won' && userData.currentStreak + 1 > userData.maxStreak ? userData.currentStreak + 1 : userData.maxStreak,
+          });
 
-          await updateDoc(userDocRef, updatedStats);
-          setUserStats(updatedStats);
         } catch (error) {
-          console.error('Error saving user stats:', error);
         }
       };
 
-      saveStats(); //what does saveStats do 
+      saveStats();
       setModalVisible(true);
     }
   }, [gameState, curRow, db, user.uid]);
@@ -260,15 +282,21 @@ const Game = () => {
     navigation.navigate('UserSearchScreen', { currentUserUid: user.uid });
   };
 
-
   return (
     <ScrollView>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>WORDLE</Text>
-        <Button
-          title="Send Friend Request"
-          onPress={handleAddFriend}
-        />
+        <View style={styles.header}>
+          <Text style={styles.title}>WORDLE</Text>
+          <TouchableOpacity style={styles.iconButton} onPress={handleAddFriend}>
+            <Icon name="user" size={24} color={colors.lightgrey} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('GameResultsScreen', { currentUserUid: user.uid })}
+          >
+            <Icon name="history" size={24} color={colors.lightgrey} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.map}>
           {rows.map((row, i) => (
             <View key={`row-${i}`} style={styles.row}>
@@ -305,9 +333,7 @@ const Game = () => {
           winPercentage={userStats.winPercentage}
           currentStreak={userStats.currentStreak}
           maxStreak={userStats.maxStreak}
-          guessDistribution={userStats.guessDistribution}
         />
-
       </SafeAreaView>
     </ScrollView>
   );
@@ -318,15 +344,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 10,
+    marginVertical: 20,
+  },
   title: {
     textAlign: 'center',
     fontSize: 32,
     color: colors.lightgrey,
     fontWeight: 'bold',
   },
+  iconButton: {
+    padding: 10,
+  },
   map: {
     alignSelf: 'stretch',
-    marginVertical: 20,
   },
   row: {
     flexDirection: 'row',

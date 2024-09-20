@@ -5,6 +5,7 @@ import Game from './src/screens/game';
 import Welcome from './src/screens/Welcome';
 import UserSearchScreen from './src/screens/userSearchScreen';
 import FriendRequestsScreen from './src/screens/FriendRequestScreen';
+import GameResultsScreen from './src/screens/GameResultsScreen';
 
 
 //enableScreens();
@@ -23,7 +24,8 @@ export default function App() {
         <Stack.Screen name="Welcome" component={Welcome} />
         <Stack.Screen name="Game" component={Game} />
         <Stack.Screen name="UserSearchScreen" component={UserSearchScreen} />
-        <Stack.Screen name = "FriendRequestScreen" component={FriendRequestsScreen} />
+        <Stack.Screen name="FriendRequestScreen" component={FriendRequestsScreen} />
+        <Stack.Screen name="GameResultsScreen" component={GameResultsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

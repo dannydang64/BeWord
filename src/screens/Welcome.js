@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, Button, Pressable, Alert } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { app} from '../../firebaseConfig.js'
+import { app } from '../../firebaseConfig.js'
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { getFirestore } from "firebase/firestore";
 
@@ -12,7 +12,7 @@ const Welcome = ({ navigation }) => {
 
   const auth = getAuth(app);
   const db = getFirestore(app);
-  
+
 
   const handleAuth = async () => {
     try {
@@ -26,24 +26,16 @@ const Welcome = ({ navigation }) => {
           email: userCredential.user.email,
           playedGames: 0, // note that when addding a field we use : not = 
           wins: 0,
-          winPercentage: 0, 
+          winPercentage: 0,
           currentStreak: 0,
-          maxStreak: 0, 
-          guessDistribution: {
-            1: 0, 
-            2: 0, 
-            3: 0, 
-            4: 0, 
-            5: 0, 
-            6: 0, 
-          },
-
-
-          // added this to create friend system
+          maxStreak: 0,
           friends: [],
+
         });
+        console.log("User document created with gameResults:", userCredential.user.uid);
+
         console.log('User signed up:', userCredential.user);
-        Alert.alert("You sucessfully signed up!"); 
+        Alert.alert("You sucessfully signed up!");
       } else {
 
         userCredential = await signInWithEmailAndPassword(auth, email, password);
